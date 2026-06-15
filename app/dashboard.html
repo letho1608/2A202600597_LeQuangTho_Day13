@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Day 13 Observability Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="refresh" content="20" />
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #1e293b;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --good: #22c55e;
+      --warn: #facc15;
+      --bad: #ef4444;
+      --border: #334155;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    header {
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 { margin: 0; font-size: 18px; letter-spacing: 0.4px; }
+    header .meta { color: var(--muted); font-size: 12px; }
+    main {
+      padding: 20px 24px;
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 16px;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 18px;
+      grid-column: span 6;
+    }
+    .panel.wide { grid-column: span 12; }
+    .panel h2 {
+      margin: 0 0 6px 0;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+    }
+    .value {
+      font-size: 28px;
+      font-weight: 600;
+      margin: 4px 0 8px 0;
+    }
+    .unit { color: var(--muted); font-size: 13px; margin-left: 4px; }
+    .slo-good { color: var(--good); }
+    .slo-warn { color: var(--warn); }
+    .slo-bad { color: var(--bad); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 4px 6px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 500; }
+    .bar {
+      height: 6px;
+      border-radius: 3px;
+      background: var(--border);
+      overflow: hidden;
+    }
+    .bar > div { height: 100%; background: var(--accent); }
+    .footer { color: var(--muted); font-size: 12px; padding: 12px 24px 24px; }
+    code { background: #0b1224; padding: 2px 5px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Day 13 — Observability Dashboard</h1>
+      <div class="meta" id="meta">Loading…</div>
+    </div>
+    <div class="meta">Refresh: 20s · Time range: 1h</div>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2>1 · Latency (P50 / P95 / P99)</h2>
+      <div><span class="value" id="lat-p50">–</span><span class="unit">ms</span> <span class="slo-good">P50</span></div>
+      <div><span class="value" id="lat-p95">–</span><span class="unit">ms</span> <span id="lat-p95-status">P95</span></div>
+      <div><span class="value" id="lat-p99">–</span><span class="unit">ms</span> <span class="slo-bad">P99</span></div>
+      <div class="meta">SLO target: P95 &lt; 3000ms</div>
+    </section>
+
+    <section class="panel">
+      <h2>2 · Traffic (Requests)</h2>
+      <div><span class="value" id="traffic">–</span><span class="unit">req</span></div>
+      <div class="bar"><div id="traffic-bar" style="width:0%"></div></div>
+      <div class="meta">Total requests served in-process.</div>
+    </section>
+
+    <section class="panel">
+      <h2>3 · Error Rate</h2>
+      <div><span class="value" id="error-rate">–</span><span class="unit">%</span></div>
+      <table>
+        <thead><tr><th>Error Type</th><th>Count</th></tr></thead>
+        <tbody id="error-tbody"><tr><td colspan="2" class="meta">No errors</td></tr></tbody>
+      </table>
+      <div class="meta">SLO target: &lt; 2%</div>
+    </section>
+
+    <section class="panel">
+      <h2>4 · Cost</h2>
+      <div><span class="value" id="cost-total">–</span><span class="unit">USD total</span></div>
+      <div><span class="value" id="cost-avg">–</span><span class="unit">USD avg / request</span></div>
+      <div class="meta">SLO budget: &lt; $2.50 / day</div>
+    </section>
+
+    <section class="panel">
+      <h2>5 · Tokens (in / out)</h2>
+      <div><span class="value" id="tokens-in">–</span><span class="unit">tokens in</span></div>
+      <div><span class="value" id="tokens-out">–</span><span class="unit">tokens out</span></div>
+      <div class="meta">Cumulative since process start.</div>
+    </section>
+
+    <section class="panel">
+      <h2>6 · Quality Proxy</h2>
+      <div><span class="value" id="quality">–</span><span class="unit">avg score</span></div>
+      <div class="meta">Heuristic: doc coverage, length, token overlap. Target ≥ 0.75</div>
+    </section>
+
+    <section class="panel wide">
+      <h2>SLO Status</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>SLI</th><th>Target</th><th>Window</th><th>Current</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="slo-tbody"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <div class="footer">
+    Endpoints: <code>GET /health</code> · <code>GET /metrics</code> · <code>POST /chat</code> ·
+    <code>POST /incidents/{name}/{enable|disable}</code>
+  </div>
+
+  <script>
+    const SLO = {
+      "Latency P95 (ms)": { target: 3000, op: "lt", window: "28d" },
+      "Error Rate (%)":   { target: 2,    op: "lt", window: "28d" },
+      "Daily Cost (USD)": { target: 2.5,  op: "lt", window: "1d"  },
+      "Quality (avg)":    { target: 0.75, op: "gt", window: "28d" },
+    };
+
+    function fmt(n, digits = 0) {
+      if (n === null || n === undefined || Number.isNaN(n)) return "–";
+      return Number(n).toLocaleString(undefined, { maximumFractionDigits: digits, minimumFractionDigits: digits });
+    }
+
+    function sloStatus(value, rule) {
+      if (value === null || value === undefined) return ["unknown", "—"];
+      const breach = rule.op === "lt" ? value > rule.target : value < rule.target;
+      return breach ? ["bad", "BREACH"] : ["good", "OK"];
+    }
+
+    async function refresh() {
+      try {
+        const res = await fetch("/metrics", { cache: "no-store" });
+        const m = await res.json();
+        const errTotal = Object.values(m.error_breakdown || {}).reduce((a, b) => a + b, 0);
+        const errorRate = m.traffic > 0 ? (errTotal / m.traffic) * 100 : 0;
+
+        document.getElementById("lat-p50").textContent = fmt(m.latency_p50);
+        document.getElementById("lat-p95").textContent = fmt(m.latency_p95);
+        document.getElementById("lat-p99").textContent = fmt(m.latency_p99);
+        const p95El = document.getElementById("lat-p95-status");
+        p95El.className = m.latency_p95 > 3000 ? "slo-bad" : "slo-good";
+
+        document.getElementById("traffic").textContent = fmt(m.traffic);
+        const trafficPct = Math.min(100, Math.log10(Math.max(1, m.traffic)) * 25);
+        document.getElementById("traffic-bar").style.width = trafficPct + "%";
+
+        const errEl = document.getElementById("error-rate");
+        errEl.textContent = fmt(errorRate, 2);
+        errEl.className = "value " + (errorRate > 2 ? "slo-bad" : "slo-good");
+
+        const errBody = document.getElementById("error-tbody");
+        if (errTotal === 0) {
+          errBody.innerHTML = '<tr><td colspan="2" class="meta">No errors recorded</td></tr>';
+        } else {
+          errBody.innerHTML = Object.entries(m.error_breakdown)
+            .map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`)
+            .join("");
+        }
+
+        document.getElementById("cost-total").textContent = fmt(m.total_cost_usd, 4);
+        document.getElementById("cost-avg").textContent = fmt(m.avg_cost_usd, 4);
+        document.getElementById("tokens-in").textContent = fmt(m.tokens_in_total);
+        document.getElementById("tokens-out").textContent = fmt(m.tokens_out_total);
+
+        const q = document.getElementById("quality");
+        q.textContent = fmt(m.quality_avg, 2);
+        q.className = "value " + (m.quality_avg >= 0.75 ? "slo-good" : "slo-warn");
+
+        const rows = [
+          ["Latency P95 (ms)", fmt(m.latency_p95), SLO["Latency P95 (ms)"]],
+          ["Error Rate (%)",   fmt(errorRate, 2),   SLO["Error Rate (%)"]],
+          ["Daily Cost (USD)", fmt(m.total_cost_usd, 4), SLO["Daily Cost (USD)"]],
+          ["Quality (avg)",    fmt(m.quality_avg, 2), SLO["Quality (avg)"]],
+        ];
+        document.getElementById("slo-tbody").innerHTML = rows.map(([name, current, rule]) => {
+          const [cls, status] = sloStatus(parseFloat(String(current).replace(/,/g, "")), rule);
+          return `<tr>
+            <td>${name}</td>
+            <td>${rule.op === "lt" ? "&lt; " : "&gt; "}${rule.target}</td>
+            <td>${rule.window}</td>
+            <td>${current}</td>
+            <td class="slo-${cls}">${status}</td>
+          </tr>`;
+        }).join("");
+
+        document.getElementById("meta").textContent =
+          "Updated " + new Date().toLocaleTimeString() +
+          " · traffic=" + m.traffic + " · p95=" + m.latency_p95 + "ms";
+      } catch (e) {
+        document.getElementById("meta").textContent = "Error fetching /metrics: " + e;
+      }
+    }
+
+    refresh();
+    setInterval(refresh, 20000);
+  </script>
+</body>
+</html>

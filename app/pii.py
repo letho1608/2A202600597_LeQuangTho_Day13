@@ -5,10 +5,14 @@ import re
 
 PII_PATTERNS: dict[str, str] = {
     "email": r"[\w\.-]+@[\w\.-]+\.\w+",
-    "phone_vn": r"(?:\+84|0)[ \.-]?\d{3}[ \.-]?\d{3}[ \.-]?\d{3,4}", # Matches 090 123 4567, 090.123.4567, etc.
-    "cccd": r"\b\d{12}\b",
-    "credit_card": r"\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b",
-    # TODO: Add more patterns (e.g., Passport, Vietnamese address keywords)
+    "jwt": r"\beyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{5,}\b",
+    "bearer_token": r"(?i)\bbearer\s+[A-Za-z0-9._\-]{8,}",
+    "credit_card": r"\b(?:\d{4}[- ]?){3}\d{4}\b",
+    "cccd": r"(?<!\d)\d{12}(?!\d)",
+    "passport": r"\b[A-Z]{1,2}\d{6,9}\b",
+    "phone_vn": r"(?<!\d)0\d{2}[ \.-]?\d{3}[ \.-]?\d{3,4}(?!\d)",
+    "phone_intl": r"(?<!\d)\+\d{1,3}[ \.-]?\d{2,4}[ \.-]?\d{2,4}[ \.-]?\d{2,4}(?!\d)",
+    "ip_v4": r"\b(?:\d{1,3}\.){3}\d{1,3}\b",
 }
 
 
