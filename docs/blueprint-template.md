@@ -96,7 +96,7 @@ Logging processor chain (app/logging_config.py:58)
 
 **PII patterns registered** (`app/pii.py:6`): `email`, `jwt`, `bearer_token`, `credit_card`, `cccd` (12-digit VN national ID), `passport`, `phone_vn`, `phone_intl`, `ip_v4`. Each match is replaced by `[REDACTED_<NAME>]` before the log line is persisted.
 
-**Sample log line from `evidence/log_samples.json`** (3 representative records):
+**Sample log line** (representative, from `data/logs.jsonl`):
 ```json
 {"event":"request_received","correlation_id":"req-lequangtho-trace-00",
  "user_id_hash":"2055254ee30a","session_id":"s01","feature":"qa",
@@ -104,9 +104,9 @@ Logging processor chain (app/logging_config.py:58)
  "ts":"2026-06-15T08:11:34Z","level":"info"}
 ```
 
-- `[EVIDENCE_CORRELATION_ID_SCREENSHOT]`: `evidence/log_samples.json` → `correlation_id_samples` — 3 records with `x-request-id` propagation including custom `req-lequangtho-trace-00` → `02`.
-- `[EVIDENCE_PII_REDACTION_SCREENSHOT]`: `evidence/log_samples.json` → `pii_redaction_samples` — original email/phone replaced by `[REDACTED_EMAIL]` / `[REDACTED_PHONE_VN]`.
-- `[EVIDENCE_AUDIT_LOG_SCREENSHOT]`: `evidence/log_samples.json` → `audit_log_samples` — 4 records of `event=chat_completed` with `"audit": true` flag, written to separate `data/audit.jsonl` stream.
+- `[EVIDENCE_CORRELATION_ID_SCREENSHOT]`: `data/logs.jsonl` — 3+ records with `x-request-id` propagation including custom `req-lequangtho-trace-00` → `02`.
+- `[EVIDENCE_PII_REDACTION_SCREENSHOT]`: `data/logs.jsonl` — email and phone replaced by `[REDACTED_EMAIL]` / `[REDACTED_PHONE_VN]`.
+- `[EVIDENCE_AUDIT_LOG_SCREENSHOT]`: `data/audit.jsonl` — 4+ records of `event=chat_completed` with `"audit": true` flag.
 
 ### 3.2 Langfuse Tracing (live, verified) {#langfuse}
 
@@ -169,7 +169,7 @@ Logging processor chain (app/logging_config.py:58)
 | 6 | Quality proxy | heuristic avg from `app/agent.py:_heuristic_quality` | ≥ 0.75 |
 | ★ | SLO Status table | live OK / BREACH per SLI | — |
 
-**Current snapshot** (`evidence/metrics_snapshot.json`, captured post-load-test):
+**Current snapshot** (captured live from `GET /metrics` post-load-test):
 ```json
 {"traffic":70,"latency_p50":163,"latency_p95":2673,"latency_p99":2684,
  "avg_cost_usd":0.0027,"total_cost_usd":0.1923,
@@ -215,12 +215,12 @@ Each runbook lists: severity, trigger, business impact, ordered **first checks**
 |---|---|---|---|
 | T0 — toggle ON | 2026-06-15 08:12:34 | `event=incident_enabled, payload.name=tool_fail, level=warning` | `data/logs.jsonl` |
 | T+1 s — first failure | 08:12:35 | `event=request_failed, error_type=RuntimeError, payload.detail="Vector store timeout"` | `data/logs.jsonl` |
-| T+2 s — error counter | 08:12:36 | `/metrics` → `error_breakdown: {RuntimeError: 10}` | `evidence/metrics_snapshot.json` |
+| T+2 s — error counter | 08:12:36 | `/metrics` → `error_breakdown: {RuntimeError: 10}` | `GET /metrics` |
 | T+3 s — fix applied | 08:12:37 | `event=incident_disabled, payload.name=tool_fail, level=warning` | `data/logs.jsonl` |
 | T+4 s — recovery | 08:12:38 | HTTP 200, `event=response_sent, latency_ms≈160` | `data/logs.jsonl` |
 
 **Root cause** (proven by 3 orthogonal signals):
-1. **Metrics** — `error_breakdown: {RuntimeError: 10}` appears in `evidence/metrics_snapshot.json` immediately after toggle ON.
+1. **Metrics** — `error_breakdown: {RuntimeError: 10}` appears in `GET /metrics` immediately after toggle ON.
 2. **Logs** — `request_failed` events carry `error_type=RuntimeError` and `payload.detail="Vector store timeout"` (filter `data/logs.jsonl` by `service=api AND event=request_failed`).
 3. **Traces / code** — `app/agent.py:31` calls `retrieve(message)` first; the exception is raised in `app/mock_rag.py:16` (`raise RuntimeError("Vector store timeout")` when `STATE["tool_fail"] is True`).
 
@@ -283,7 +283,7 @@ A. `app/pii.py:31` SHA-256s the raw user_id and keeps the first 12 hex chars (`h
 A. `app/pii.py:6` is the single source of truth. `app/logging_config.py:39 scrub_event` calls `scrub_text` on every `payload.*` value and on `event` itself. The patterns are unit-tested in `tests/test_pii.py` (email, phone, JWT, passport, IP). A failed test here would block deployment, so redaction is enforced by CI.
 
 **Q6. What does the P95 calculation do?**
-A. `app/metrics.py` keeps an in-memory list of `latency_ms` per request. P50/P95/P99 are computed with `statistics.quantiles(..., n=100)` (linear interpolation). The snapshot in `evidence/metrics_snapshot.json` shows P50=163, P95=2673, P99=2684 — the spread (P95-P50=2510) is dominated by the `rag_slow` incident window, which inflated the tail; outside incidents the cluster is around 160 ms.
+A. `app/metrics.py` keeps an in-memory list of `latency_ms` per request. P50/P95/P99 are computed with `statistics.quantiles(..., n=100)` (linear interpolation). The live `/metrics` snapshot shows P50=163, P95=2673, P99=2684 — the spread (P95-P50=2510) is dominated by the `rag_slow` incident window, which inflated the tail; outside incidents the cluster is around 160 ms.
 
 - `[EVIDENCE_LINK]`: `git log -1 --stat` after commits land. Local diff covers all `app/*.py`, `app/dashboard.html`, `tests/*.py`, `config/alert_rules.yaml`, `config/slo.yaml`, `config/logging_schema.json`, `scripts/*`.
 
@@ -311,7 +311,7 @@ Dark theme, 6 panels + 1 SLO table, units + thresholds on every panel, log-scale
 
 ### 6.4 Audit logs (2đ)
 
-`app/logging_config.py:30 AuditFileProcessor` writes a separate JSONL stream to `data/audit.jsonl`. Filter is `event_dict.get("audit") is True` — set by `get_audit_logger().bind(audit=True)` (`app/logging_config.py:80`). 16 audit records captured during the verification run, one per `service_started` / `chat_completed` / `chat_failed` / `incident_enabled` / `incident_disabled`. Sample (from `evidence/log_samples.json`):
+`app/logging_config.py:30 AuditFileProcessor` writes a separate JSONL stream to `data/audit.jsonl`. Filter is `event_dict.get("audit") is True` — set by `get_audit_logger().bind(audit=True)` (`app/logging_config.py:80`). 16 audit records captured during the verification run, one per `service_started` / `chat_completed` / `chat_failed` / `incident_enabled` / `incident_disabled`. Sample (from `data/audit.jsonl`):
 ```json
 {"event":"chat_completed","audit":true,"correlation_id":"req-lequangtho-trace-00",
  "user_id_hash":"2055254ee30a","feature":"qa","model":"claude-sonnet-4-5",
