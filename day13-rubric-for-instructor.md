@@ -28,7 +28,7 @@ Rubric này áp dụng mô hình **60/40**:
 ## B. Individual Score (Điểm Cá nhân) - 40 điểm
 
 ### B1. Individual Report & Quality - 20 điểm
-- Phần báo cáo cá nhân trong `blueprint-template.md` chi tiết, rõ ràng.
+- Phần báo cáo cá nhân trong `report.md` (filled-in blueprint at repo root) chi tiết, rõ ràng.
 - Hiểu sâu về phần việc mình đảm nhận (ví dụ: giải thích được regex PII hoặc cách tính P95).
 
 ### B2. Evidence of Work (Commit/PR) - 20 điểm

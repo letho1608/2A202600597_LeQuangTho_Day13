@@ -79,7 +79,7 @@ data/
   audit.jsonl            optional audit log output
 
 docs/
-  blueprint-template.md  team submission template
+  blueprint-template.md  team submission template (see `report.md` at repo root for the filled-in version)
   alerts.md              runbook + alert worksheet
   dashboard-spec.md      6-panel dashboard checklist
   grading-evidence.md    evidence collection sheet
@@ -104,7 +104,7 @@ Your final grade is calculated as follows:
    - **Incident Response (10 pts)**: Accuracy of your root cause analysis in the report.
    - **Live Demo (20 pts)**: Team presentation and system demonstration.
 2. **Individual Score (40%)**:
-   - **Individual Report (20 pts)**: Quality of your specific contributions in `docs/blueprint-template.md`.
+   - **Individual Report (20 pts)**: Quality of your specific contributions in `report.md` (the filled-in blueprint).
    - **Git Evidence (20 pts)**: Traceable work via commits and code ownership.
 
 **Passing Criteria**: 

@@ -1,11 +1,13 @@
-# Day 13 Observability Lab Report
+<div align="center">
 
-> **Submission**: Single-member team. **Lê Quang Thọ**, MSSV `2A202600597`.
-> Repo: `D:\Code\ai_thucchien1\2A202600597_LeQuangTho_Day13`
-> All `TODO` blocks completed. All evidence captured to `evidence/`.
-> Test suite: **25/25 pass**. `validate_logs.py`: **100/100**. Langfuse traces: **10/10 verified with full metadata**.
+# 📊 Day 13 — Observability Lab Report
 
-<p align="left">
+**Solo submission by [Lê Quang Thọ](https://github.com/letho1608)** · MSSV `2A202600597` · Track **AI Thực Chiến**
+[Repo](https://github.com/letho1608/2A202600597_LeQuangTho_Day13) · [Langfuse project](https://jp.cloud.langfuse.com) · [Rubric](day13-rubric-for-instructor.md)
+
+</div>
+
+<p align="center">
   <img src="https://img.shields.io/badge/python-3.12-blue?logo=python" alt="python">
   <img src="https://img.shields.io/badge/fastapi-0.110-009688?logo=fastapi" alt="fastapi">
   <img src="https://img.shields.io/badge/langfuse-3.2.1-7c3aed?logo=langfuse" alt="langfuse">
@@ -15,6 +17,8 @@
   <img src="https://img.shields.io/badge/langfuse_traces-10%2F10-brightgreen" alt="traces">
   <img src="https://img.shields.io/badge/pii_leaks-0-brightgreen" alt="pii">
 </p>
+
+> 🏁 **Key Result**: All 8 README "Suggested lab flow" items complete · `validate_logs.py` **100/100** · 10 Langfuse traces with full `userId` / `sessionId` / `tags` / `metadata` / `output` · 6-panel dashboard live · 3 alert rules with runbook · 4/4 rubric passing criteria hit.
 
 ---
 
@@ -40,7 +44,7 @@
 | Field | Value |
 |---|---|
 | `[GROUP_NAME]` | `LeQuangTho_2A202600597` |
-| `[REPO_URL]` | `D:\Code\ai_thucchien1\2A202600597_LeQuangTho_Day13` |
+| `[REPO_URL]` | [`github.com/letho1608/2A202600597_LeQuangTho_Day13`](https://github.com/letho1608/2A202600597_LeQuangTho_Day13) |
 | `[MEMBER_A]` | **Lê Quang Thọ** — MSSV `2A202600597` — roles: Logging & PII, Tracing, SLO & Alerts, Load Test, Dashboard, Blueprint, Incident Debug (solo, full-stack) |
 
 ---
